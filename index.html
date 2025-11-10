@@ -88,7 +88,6 @@
             color: #007bff;
             cursor: pointer;
             text-decoration: none;
-            display: block;
             transition: color 0.2s ease;
         }
 
@@ -97,7 +96,12 @@
             text-decoration: underline;
         }
 
-        /* Responsive design */
+        .links-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -124,21 +128,7 @@
     </div>
 
     <script>
-        // ВАЖЛИВО: Замініть це посилання на ваше CSV-посилання з Google Drive
-        // Формат: https://drive.google.com/uc?export=download&id=ВАШ_FILE_ID
         const CSV_URL = 'data.csv';
-
-        // Функція для отримання правильного посилання на Google Drive
-        function getDirectDownloadLink(url) {
-            // Якщо це посилання на перегляд, конвертуємо в пряме посилання на завантаження
-            if (url.includes('drive.google.com/file/d/')) {
-                const fileId = url.match(/\/d\/([^/]+)/)?.[1];
-                if (fileId) {
-                    return `https://drive.google.com/uc?export=download&id=${fileId}`;
-                }
-            }
-            return url;
-        }
 
         function createTable(data) {
             const container = document.getElementById('tableContainer');
@@ -149,12 +139,10 @@
                 return;
             }
 
-            // Створюємо таблицю
             const table = document.createElement('table');
             const thead = document.createElement('thead');
             const tbody = document.createElement('tbody');
 
-            // Заголовки (перші 4 колонки)
             const headerRow = document.createElement('tr');
             for (let i = 0; i < 4 && i < data[0].length; i++) {
                 const th = document.createElement('th');
@@ -163,43 +151,50 @@
             }
             thead.appendChild(headerRow);
 
-            // Дані (починаючи з другого рядка)
             for (let i = 1; i < data.length; i++) {
                 const row = data[i];
-                // Пропускаємо порожні рядки
                 if (!row || row.every(cell => !cell || cell.trim() === '')) {
                     continue;
                 }
 
                 const tr = document.createElement('tr');
 
-                // Перші 3 колонки - звичайні комірки
                 for (let j = 0; j < 3 && j < row.length; j++) {
                     const td = document.createElement('td');
                     td.textContent = row[j] || '';
                     tr.appendChild(td);
                 }
 
-                // 4-та колонка - з посиланням на URL з 5-ї колонки
                 if (row.length >= 4) {
                     const td = document.createElement('td');
-                    const link = document.createElement('a');
-                    link.className = 'link-cell';
-                    link.textContent = row[3] || '';
+                    const names = row[3] ? row[3].split('\n').filter(n => n.trim()) : [];
+                    const urls = row[4] ? row[4].split('\n').filter(u => u.trim()) : [];
 
-                    // Якщо є 5-та колонка з URL
-                    if (row[4] && row[4].trim() !== '') {
-                        link.href = row[4].trim();
-                        link.target = '_blank'; // Відкривати в новій вкладці
-                        link.rel = 'noopener noreferrer'; // Безпека
-                    } else {
-                        // Якщо немає URL, робимо текст без посилання
-                        link.style.color = '#495057';
-                        link.style.cursor = 'default';
-                        link.onclick = (e) => e.preventDefault();
+                    if (names.length > 0) {
+                        const container = document.createElement('div');
+                        container.className = 'links-container';
+
+                        names.forEach((name, index) => {
+                            const link = document.createElement('a');
+                            link.className = 'link-cell';
+                            link.textContent = name.trim();
+
+                            if (urls[index] && urls[index].trim() !== '') {
+                                link.href = urls[index].trim();
+                                link.target = '_blank';
+                                link.rel = 'noopener noreferrer';
+                            } else {
+                                link.style.color = '#495057';
+                                link.style.cursor = 'default';
+                                link.onclick = (e) => e.preventDefault();
+                            }
+
+                            container.appendChild(link);
+                        });
+
+                        td.appendChild(container);
                     }
 
-                    td.appendChild(link);
                     tr.appendChild(td);
                 }
 
@@ -220,11 +215,8 @@
             error.textContent = `Помилка: ${message}`;
         }
 
-        // Завантаження та парсинг CSV
         function loadCSV() {
-            const directLink = getDirectDownloadLink(CSV_URL);
-
-            Papa.parse(directLink, {
+            Papa.parse(CSV_URL, {
                 download: true,
                 complete: function (results) {
                     if (results.errors.length > 0) {
@@ -238,15 +230,13 @@
                 },
                 error: function (error) {
                     console.error('Помилка завантаження:', error);
-                    showError('Не вдалося завантажити CSV файл. Перевірте посилання та налаштування доступу до файлу.');
+                    showError('Не вдалося завантажити CSV файл');
                 }
             });
         }
 
-        // Запуск при завантаженні сторінки
         window.addEventListener('load', loadCSV);
     </script>
 </body>
-
 
 </html>
